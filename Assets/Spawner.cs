@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,8 +12,10 @@ public class Spawner : MonoBehaviour
     [SerializeField] int _spawnQuanity = 5;
     [SerializeField] float _initialSpeed = 25;
     [SerializeField] Text _text;
+    [SerializeField] Vector3 PlanetPosition;
 
     int _spawnCount;
+    List<Rigidbody> rigidbodies = new List<Rigidbody>(3000);
 
     void Update()
     {
@@ -42,6 +45,20 @@ public class Spawner : MonoBehaviour
                 _text.text = "object count: " + _spawnCount;
             }
         }
+
+        foreach (var rb in rigidbodies)
+        {
+            BodyUpdate(rb);
+        }
+    }
+
+    void BodyUpdate(Rigidbody rigidbody)
+    {
+        Vector3 dir = PlanetPosition - rigidbody.position;
+        float distance = dir.magnitude;
+        float force = G / Mathf.Pow(distance, 2);
+
+        rigidbody.AddForce(dir.normalized * force);
     }
 
     private void Spawn()
@@ -49,8 +66,9 @@ public class Spawner : MonoBehaviour
         var go = Instantiate(_prefab, transform);
         _spawnCount++;
         go.transform.position = transform.position + (Random.insideUnitSphere * _spawnQuanity);
-        Rigidbody a = go.GetComponent<Rigidbody>();
+        Rigidbody rb = go.GetComponent<Rigidbody>();
         var velocityVariation = new Vector3(Random.Range(-variation, variation), Random.Range(-variation, variation), Random.Range(-variation, variation));
-        a.velocity = (transform.forward + velocityVariation) * _initialSpeed;
+        rb.velocity = (transform.forward + velocityVariation) * _initialSpeed;
+        rigidbodies.Add(rb);
     }
 }
