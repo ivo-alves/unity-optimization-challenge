@@ -39,10 +39,9 @@ public class Spawner : MonoBehaviour
             for (int i = 0; i < _spawnQuanity; i++)
             {
                 Spawn();
+                _text.text = "object count: " + _spawnCount;
             }
         }
-
-        _text.text = "object count: " + _spawnCount;
     }
 
     private void Spawn()
