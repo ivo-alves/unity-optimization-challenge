@@ -49,3 +49,4 @@ HostedData
 *.zip
 UserSettings
 .vsconfig
+*.app

@@ -6,7 +6,6 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
-using UnityEngine;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateBefore(typeof(BuildPhysicsWorld))]
@@ -21,9 +20,10 @@ public class GravitySystem : SystemBase
 
         _marker = new ProfilerMarker("Gravity System Marker");
 
-        _query = GetEntityQuery(typeof(PhysicsVelocity),
-            ComponentType.ReadOnly<PhysicsMass>(),
-            ComponentType.ReadOnly<Translation>());
+        _query = GetEntityQuery(typeof(VelocityData),
+                                typeof(Translation),
+                                ComponentType.ReadOnly<MassData>(),
+                                ComponentType.ReadOnly<GravityData>());
     }
 
     protected override void OnUpdate()
@@ -32,35 +32,36 @@ public class GravitySystem : SystemBase
         int G = Spawner.G;
         ProfilerMarker marker = _marker;
 
-        NativeArray<Translation> translations = _query.ToComponentDataArray<Translation>(Allocator.TempJob);
-        NativeArray<PhysicsMass> masses = _query.ToComponentDataArray<PhysicsMass>(Allocator.TempJob);
+        NativeArray<Translation> sunsT = _query.ToComponentDataArray<Translation>(Allocator.TempJob);
+        NativeArray<MassData> sunsM = _query.ToComponentDataArray<MassData>(Allocator.TempJob);
 
         Entities
             .WithBurst()
-            .ForEach((ref PhysicsVelocity v, in PhysicsMass m, in Translation t) =>
+            .ForEach((ref VelocityData v, ref Translation t, in MassData m) =>
             {
                 marker.Begin();
                 float3 totalForce = float3.zero;
 
-                for (int i = 0; i < translations.Length; i++)
+                for (int i = 0; i < sunsT.Length; i++)
                 {
-                    float3 dir = translations[i].Value - t.Value;
-                    float distance = distance = math.distance(translations[i].Value, t.Value);
+                    float3 dir = sunsT[i].Value - t.Value;
+                    float distance = distance = math.distance(sunsT[i].Value, t.Value);
 
-                    if (distance > 1)
+                    if (distance > 25)
                     {
-                        float force = G * (1 / masses[i].InverseMass) / (distance * distance);
+                        float force = G * m.Mass * sunsM[i].Mass / (distance * distance);
                         float3 acc = math.normalize(dir) * force;
                         totalForce += new float3(acc.x, acc.y, acc.z);
                     }
                 }
 
-                v.Linear += totalForce * dt;
+                v.Velocity += (totalForce * dt) / m.Mass;
+                t.Value += v.Velocity * dt;
 
                 marker.End();
             })
-            .WithDisposeOnCompletion(translations)
-            .WithDisposeOnCompletion(masses)
+            .WithDisposeOnCompletion(sunsT)
+            .WithDisposeOnCompletion(sunsM)
             .Schedule();
     }
 };

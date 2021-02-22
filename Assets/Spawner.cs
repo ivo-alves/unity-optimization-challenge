@@ -12,6 +12,7 @@ public class Spawner : MonoBehaviour
 
     [SerializeField] GameObject _prefab;
     [SerializeField] int _spawnQuanity = 5;
+    [SerializeField] int _spawnSize = 5;
     [SerializeField] float _initialSpeed = 25;
     [SerializeField] Text _text;
     [SerializeField] float timePerSpawn = 1;
@@ -53,26 +54,22 @@ public class Spawner : MonoBehaviour
 
         Vector3 initialVelocity = transform.forward * _initialSpeed;
 
-        int total = _spawnQuanity * _spawnQuanity;
         int index = 0;
-        NativeArray<Entity> cubes = new NativeArray<Entity>(total, Allocator.TempJob);
+        NativeArray<Entity> cubes = new NativeArray<Entity>(_spawnQuanity, Allocator.TempJob);
         _entityManager.Instantiate(_entityPrefab, cubes);
 
         for (int i = 0; i < _spawnQuanity; i++)
         {
-            for (int j = 0; j < _spawnQuanity; j++)
-            {
-                Vector3 spawnPosition = transform.position + new Vector3(0, i * 2, -j * 2);
-                Translation translation = new Translation { Value = spawnPosition };
+            Vector3 spawnPosition = transform.position + (Random.insideUnitSphere * _spawnSize);
+            Translation translation = new Translation { Value = spawnPosition };
 
-                _entityManager.SetComponentData(cubes[index], translation);
-                _entityManager.SetComponentData(cubes[index], new PhysicsVelocity { Linear = initialVelocity });
+            _entityManager.SetComponentData(cubes[index], translation);
+            _entityManager.SetComponentData(cubes[index], new VelocityData { Velocity = initialVelocity });
 
-                index++;
-            }
+            index++;
         }
 
-        _spawnCount += total;
+        _spawnCount += _spawnQuanity;
         _timeSinceSpawn = 0;
         cubes.Dispose();
     }
