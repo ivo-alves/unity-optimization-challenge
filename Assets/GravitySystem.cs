@@ -1,7 +1,6 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Profiling;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
@@ -12,13 +11,10 @@ using Unity.Transforms;
 public class GravitySystem : SystemBase
 {
     EntityQuery _query;
-    ProfilerMarker _marker;
 
     protected override void OnCreate()
     {
         base.OnCreate();
-
-        _marker = new ProfilerMarker("Gravity System Marker");
 
         _query = GetEntityQuery(typeof(VelocityData),
                                 typeof(Translation),
@@ -30,8 +26,6 @@ public class GravitySystem : SystemBase
     {
         var dt = Time.DeltaTime;
         int G = Spawner.G;
-        ProfilerMarker marker = _marker;
-
         NativeArray<Translation> sunsT = _query.ToComponentDataArray<Translation>(Allocator.TempJob);
         NativeArray<MassData> sunsM = _query.ToComponentDataArray<MassData>(Allocator.TempJob);
 
@@ -39,7 +33,6 @@ public class GravitySystem : SystemBase
             .WithBurst()
             .ForEach((ref VelocityData v, ref Translation t, in MassData m) =>
             {
-                marker.Begin();
                 float3 totalForce = float3.zero;
 
                 for (int i = 0; i < sunsT.Length; i++)
@@ -57,8 +50,6 @@ public class GravitySystem : SystemBase
 
                 v.Velocity += (totalForce * dt) / m.Mass;
                 t.Value += v.Velocity * dt;
-
-                marker.End();
             })
             .WithDisposeOnCompletion(sunsT)
             .WithDisposeOnCompletion(sunsM)
